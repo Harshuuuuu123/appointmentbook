@@ -23,10 +23,10 @@ export default function ForgotPasswordPage() {
       setLoading(false);
 
       if (data.success) {
-        alert(`OTP sent: ${data.data.otp}`); // remove in production
+        alert("OTP has been sent to your email! ✅");
         setStep("reset");
       } else {
-        alert(data.message);
+        alert(data.message || "Failed to send OTP");
       }
     } catch (err) {
       setLoading(false);
@@ -50,9 +50,9 @@ export default function ForgotPasswordPage() {
 
       if (data.success) {
         alert("Password reset successful! ✅");
-        window.location.href = "/ui/login"; // Redirect to login
+        window.location.href = "/ui/login";
       } else {
-        alert(data.message);
+        alert(data.message || "Invalid OTP. Please try again.");
       }
     } catch (err) {
       setLoading(false);
@@ -69,24 +69,27 @@ export default function ForgotPasswordPage() {
       >
         <h1 className="text-xl font-bold mb-4 text-center">Forgot Password</h1>
 
+        {/* Email Input */}
         <input
           type="email"
           placeholder="Enter your email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-3 mb-3 border rounded-lg"
+          className="w-full p-3 mb-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
           disabled={step === "reset"}
         />
 
+        {/* OTP + Password Fields */}
         {step === "reset" && (
           <>
             <input
               type="text"
-              placeholder="Enter OTP"
+              placeholder="Enter 6-digit OTP"
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
-              className="w-full p-3 mb-3 border rounded-lg"
+              maxLength={6}
+              className="w-full p-3 mb-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
             <input
@@ -94,19 +97,27 @@ export default function ForgotPasswordPage() {
               placeholder="Enter new password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full p-3 mb-3 border rounded-lg"
+              className="w-full p-3 mb-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
+              minLength={6}
             />
           </>
         )}
 
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold"
+          className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition disabled:bg-gray-400"
           disabled={loading}
         >
           {loading ? "Please wait..." : step === "email" ? "Send OTP" : "Reset Password"}
         </button>
+
+        <p className="text-center text-sm mt-4">
+          Remember your password?{" "}
+          <a href="/ui/login" className="text-blue-600 hover:underline">
+            Sign In
+          </a>
+        </p>
       </form>
     </div>
   );
