@@ -36,30 +36,67 @@ export default function ForgotPasswordPage() {
   };
 
   // Step 2: Reset password
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, newPassword }),
-      });
-      const data = await res.json();
-      setLoading(false);
+// Step 2: Reset password and fetch full user data like login
+const handleResetPassword = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  try {
+    const res = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp, newPassword }),
+    });
+    const data = await res.json();
+    setLoading(false);
 
-      if (data.success) {
-        alert("Password reset successful! ✅");
-        window.location.href = "/ui/login";
+    if (data.success) {
+      alert("Password reset successful! ✅");
+
+      const user = data.user;
+
+      // Store data in localStorage just like login
+      localStorage.setItem("loggedInUserId", String(user.id));
+      localStorage.setItem("loggedInUserRole", user.role);
+
+      if (user.role === "doctor") {
+        if (!user.doctor) {
+          alert("Doctor profile not found. Please complete your profile first.");
+          window.location.href = "/ui/profile-creation";
+          return;
+        }
+
+        localStorage.setItem("doctorId", String(user.doctor.id));
+        localStorage.setItem(
+          "doctorData",
+          JSON.stringify({
+            doctor: user.doctor,
+            clinic: user.clinic || null,
+            appointments: user.appointments || [],
+          })
+        );
+
+        window.location.href = "/dashboard";
       } else {
-        alert(data.message || "Invalid OTP. Please try again.");
+        // Patient
+        localStorage.setItem(
+          "patientData",
+          JSON.stringify({
+            patient: user.patient,
+            appointments: user.appointments || [],
+          })
+        );
+        window.location.href = "/ui/search-dr";
       }
-    } catch (err) {
-      setLoading(false);
-      console.error(err);
-      alert("Failed to reset password");
+    } else {
+      alert(data.message || "Invalid OTP. Please try again.");
     }
-  };
+  } catch (err) {
+    setLoading(false);
+    console.error(err);
+    alert("Failed to reset password");
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

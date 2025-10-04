@@ -105,7 +105,7 @@ export default function LoginPage() {
         <div className="flex justify-end mt-2 mb-4">
           <button
             type="button"
-            onClick={() => router.push("/ui/forgot-password")}
+            onClick={() => router.push("/ui/forgot-pass")}
             className="text-sm text-blue-600 hover:underline"
           >
             Forgot Password?
