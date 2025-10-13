@@ -7,7 +7,7 @@ export interface Appointment {
   id: number;
   patientName: string;
   patientPhone?: string;
-  appointmentDate: string; // YYYY-MM-DD
+  appointmentDate: string; // YYYY-MM-DD (IST)
   time: string; // HH:MM
   status: string; // scheduled | confirmed | completed | cancelled
   doctor_id?: number;
@@ -19,16 +19,22 @@ export default function AppointmentsContent() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<number | null>(null);
 
-  // Get today's date in UTC (YYYY-MM-DD)
-  const getTodayUTCDate = () => {
-    const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(now.getUTCDate()).padStart(2, "0");
+  // Helper: Convert any UTC date string to IST date YYYY-MM-DD
+  const toISTDate = (utcDateStr: string) => {
+    if (!utcDateStr) return "";
+    const dateObj = new Date(utcDateStr);
+    if (isNaN(dateObj.getTime())) return "";
+
+    const istOffset = 5.5 * 60; // 5 hours 30 minutes
+    const istDate = new Date(dateObj.getTime() + istOffset * 60000);
+    const year = istDate.getFullYear();
+    const month = String(istDate.getMonth() + 1).padStart(2, "0");
+    const day = String(istDate.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
 
-  const todayUTC = getTodayUTCDate();
+  // Today's IST date
+  const todayIST = toISTDate(new Date().toISOString());
 
   useEffect(() => {
     if (!doctorId) return;
@@ -39,30 +45,16 @@ export default function AppointmentsContent() {
         const res = await fetch(`/api/appointments?doctorId=${doctorId}`);
         const data = await res.json();
 
-        // console.log(data.appointments,"=== API RESPONSEEEEEEEEEEEEEEEEEEEEEEEE ===");
-        // console.log(doctorId,"Raw API dataaaaaaaaaaaaaaaaaaaaaaa");
-
         if (data.success) {
-          const list: Appointment[] = data.appointments.map((appt: any, index: number) => {
-            // console.log(`=== Appointment ${index + 1} ===`);
-            // console.log("Raw appointment data:", appt);
-
-            // Use UTC date from DB
-            let rawDate = appt.date || appt.appointment_date || appt.appointmentDate;
-            let appointmentDate = "";
-            if (rawDate) {
-              const dateObj = new Date(rawDate);
-              if (!isNaN(dateObj.getTime())) {
-                appointmentDate = dateObj.toISOString().split("T")[0]; // UTC date YYYY-MM-DD
-              }
-            }
+          const list: Appointment[] = data.appointments.map((appt: any) => {
+            const appointmentDate = toISTDate(
+              appt.appointmentDate || appt.date || appt.appointment_date
+            );
 
             let timeFormatted = appt.time || "";
-            if (timeFormatted.includes(":")) {
-              timeFormatted = timeFormatted.substring(0, 5);
-            }
+            if (timeFormatted.includes(":")) timeFormatted = timeFormatted.substring(0, 5);
 
-            const finalAppointment = {
+            return {
               id: appt.id,
               patientName: appt.patient?.name || appt.patient_name || "Unknown Patient",
               patientPhone: appt.patient?.phone || appt.patient_phone,
@@ -71,20 +63,13 @@ export default function AppointmentsContent() {
               status: appt.status,
               doctor_id: appt.doctor_id,
             };
-
-            // console.log("Final appointment object:", finalAppointment);
-            return finalAppointment;
           });
 
-          // console.log("=== ALL PROCESSED APPOINTMENTS ===");
-          // console.log("Complete list:", list);
           setAppointments(list);
         } else {
-          // console.log("API returned success: false");
           setAppointments([]);
         }
-      } catch (err) {
-        // console.error("Failed to fetch appointments:", err);
+      } catch {
         setAppointments([]);
       } finally {
         setLoading(false);
@@ -94,27 +79,9 @@ export default function AppointmentsContent() {
     fetchAppointments();
   }, [doctorId]);
 
-  // Filters
-  const todaysAppointments = appointments.filter((appt) => {
-    const apptUTCDate = appt.appointmentDate;
-    const isToday = apptUTCDate === todayUTC;
-    // console.log(`Checking appointment ${appt.id}: ${apptUTCDate} === ${todayUTC} => ${isToday}`);
-    return isToday;
-  });
-
-  const upcomingAppointments = appointments.filter((appt) => {
-    const apptUTCDate = appt.appointmentDate;
-    const isUpcoming = apptUTCDate > todayUTC;
-    // console.log(`Checking upcoming ${appt.id}: ${apptUTCDate} > ${todayUTC} => ${isUpcoming}`);
-    return isUpcoming;
-  });
-
-  // console.log("=== DATE COMPARISON DEBUG ===");
-  // console.log("Today (UTC):", todayUTC);
-  // console.log("Total appointments:", appointments.length);
-  // console.log("Today's appointments count:", todaysAppointments.length);
-  // console.log("Upcoming appointments count:", upcomingAppointments.length);
-  // console.log("All appointments dates:", appointments.map((a) => a.appointmentDate));
+  // Filter appointments
+  const todaysAppointments = appointments.filter((appt) => appt.appointmentDate === todayIST);
+  const upcomingAppointments = appointments.filter((appt) => appt.appointmentDate > todayIST);
 
   // Update status
   const updateStatus = async (id: number, newStatus: string) => {
@@ -132,9 +99,8 @@ export default function AppointmentsContent() {
           prev.map((appt) => (appt.id === id ? { ...appt, status: newStatus } : appt))
         );
       }
-    } catch (err) {
-      // console.error("Failed to update status", err);
-    } finally {
+    } catch {}
+    finally {
       setUpdating(null);
     }
   };
@@ -202,15 +168,6 @@ export default function AppointmentsContent() {
 
   return (
     <div className="p-6 flex flex-col gap-8">
-      {/* Debug Info */}
-      <div className="bg-yellow-100 p-4 rounded-lg">
-        <h3 className="font-bold">Debug Information:</h3>
-        <p>Today's Date (UTC): {todayUTC}</p>
-        <p>Total Appointments: {appointments.length}</p>
-        <p>Today's Appointments: {todaysAppointments.length}</p>
-        <p>All Dates: {appointments.map((a) => a.appointmentDate).join(", ")}</p>
-      </div>
-
       {/* Today's Appointments */}
       <div>
         <h2 className="text-2xl font-bold mb-4">Today's Appointments</h2>

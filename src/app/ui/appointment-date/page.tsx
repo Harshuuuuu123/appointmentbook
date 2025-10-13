@@ -21,8 +21,6 @@ export default function AppointmentDate() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedTime, setSelectedTime] = useState("");
 
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
   // Fetch doctor info
   useEffect(() => {
     if (!doctorId) {
@@ -59,7 +57,7 @@ export default function AppointmentDate() {
       .finally(() => setLoadingPatient(false));
   }, []);
 
-  // Generate next 7 dates
+  // Generate next 7 dates in IST
   const next7Dates = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() + i);
@@ -104,14 +102,13 @@ export default function AppointmentDate() {
           doctor_id: doctorId,
           patient_id: patient.id,
           date: selectedDate,
-          time: selectedTime,
+          time: selectedTime, // IST time directly
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
         alert("Appointment booked successfully!");
-        // ?router.push(`/ui/appointment-details/${data.data.id}`);
       } else {
         alert(data.message || "Failed to book appointment");
       }
@@ -194,7 +191,7 @@ export default function AppointmentDate() {
                       : "border-gray-200 hover:border-gray-300 text-gray-700"
                   }`}
                 >
-                  {slot.time}
+                  {slot.time} {/* Already IST */}
                 </button>
               ))}
             </div>

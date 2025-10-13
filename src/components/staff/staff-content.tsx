@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import StaffCard from "./staff-card";
 import { useDoctor } from "@/context/DoctorContext";
 
@@ -32,50 +32,82 @@ export default function StaffContent() {
   const [showAddStaffForm, setShowAddStaffForm] = useState(false);
   const [showAddDoctorForm, setShowAddDoctorForm] = useState(false);
 
-  // Fetch staff
-  const fetchStaff = async (query: string = "") => {
-    if (!doctor) return;
+  // Fetch staff - wrapped in useCallback to prevent recreation
+  const fetchStaff = useCallback(async (query: string = "") => {
+    if (!doctor?.id) {
+      console.log("No doctor ID available");
+      return;
+    }
+    
     try {
       setLoading(true);
+      console.log("Fetching staff for doctor ID:", doctor.id);
+      
       const res = await fetch(`/api/staff${query ? `?q=${query}` : ""}`, {
         headers: { "x-doctor-id": doctor.id.toString() },
       });
+      
       const data = await res.json();
-      if (data.success) setStaffMembers(data.data);
-      else alert(data.message || "Failed to fetch staff");
+      console.log("Staff fetch response:", data);
+      
+      if (data.success) {
+        setStaffMembers(data.data || []);
+      } else {
+        console.error("Failed to fetch staff:", data.message);
+        alert(data.message || "Failed to fetch staff");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching staff:", err);
       alert("Error fetching staff");
     } finally {
       setLoading(false);
     }
-  };
+  }, [doctor?.id]);
 
-  // Fetch doctors
-  const fetchDoctors = async () => {
-    if (!doctor) return;
+  // Fetch doctors - wrapped in useCallback
+  const fetchDoctors = useCallback(async () => {
+    if (!doctor?.id) {
+      console.log("No doctor ID available");
+      return;
+    }
+    
     try {
+      console.log("Fetching doctors for doctor ID:", doctor.id);
+      
       const res = await fetch(`/api/staff/member`, {
         headers: { "x-doctor-id": doctor.id.toString() },
       });
+      
       const data = await res.json();
-      if (data.success) setDoctors(data.data);
-      else alert(data.message || "Failed to fetch doctors");
+      console.log("Doctors fetch response:", data);
+      
+      if (data.success) {
+        setDoctors(data.data || []);
+      } else {
+        console.error("Failed to fetch doctors:", data.message);
+        alert(data.message || "Failed to fetch doctors");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching doctors:", err);
     }
-  };
+  }, [doctor?.id]);
 
+  // Fetch data when doctor changes
   useEffect(() => {
-    fetchStaff();
-    fetchDoctors();
-  }, [doctor]);
+    if (doctor?.id) {
+      console.log("Doctor context loaded:", doctor);
+      fetchStaff();
+      fetchDoctors();
+    } else {
+      console.log("Waiting for doctor context...");
+    }
+  }, [doctor?.id, fetchStaff, fetchDoctors]);
 
   const handleSearch = () => fetchStaff(searchTerm);
 
   // ------------------- Remove Doctor -------------------
   const handleRemoveDoctor = async (id: number) => {
-    if (!doctor) return;
+    if (!doctor?.id) return;
     if (!confirm("Are you sure you want to remove this doctor?")) return;
 
     try {
@@ -95,6 +127,15 @@ export default function StaffContent() {
       alert("Error removing doctor");
     }
   };
+
+  // Show loading state while waiting for doctor context
+  if (!doctor) {
+    return (
+      <div className="p-6">
+        <p>Loading doctor information...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -170,7 +211,7 @@ export default function StaffContent() {
             />
           ))
         ) : (
-          <p>No staff members found.</p>
+          !loading && <p>No staff members found.</p>
         )}
       </div>
 
@@ -205,7 +246,7 @@ export default function StaffContent() {
             </div>
           ))
         ) : (
-          <p>No doctors added yet.</p>
+          !loading && <p>No doctors added yet.</p>
         )}
       </div>
     </div>

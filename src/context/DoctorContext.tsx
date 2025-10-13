@@ -29,10 +29,12 @@ export interface Appointment {
   patientId?: number;
   patientName?: string;
   patientPhone?: string;
-  date: string; 
   status: string;
   time?: string;
   doctor_id?: number;
+   date?: string;              // ✅ Optional
+  appointmentDate?: string; 
+  
 }
 
 export interface Patient {

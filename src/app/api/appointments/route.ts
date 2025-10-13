@@ -3,7 +3,7 @@ import { query } from "@/lib/db";
 
 const VALID_STATUSES = ["scheduled", "confirmed", "completed", "cancelled"];
 
-// ---------------------- GET all appointments with full doctor profile ----------------------
+// ---------------------- GET all appointments ----------------------
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
@@ -78,10 +78,8 @@ export async function GET(req: NextRequest) {
         email: appt.patient_email || "",
         phone: appt.patient_phone || "",
       },
-      appointmentDate: appt.appointment_date
-        ? new Date(appt.appointment_date).toISOString().split("T")[0]
-        : "",
-      time: appt.time?.substring(0, 5) || "",
+      appointmentDate: appt.appointment_date || "", // IST directly
+      time: appt.time?.substring(0, 5) || "",       // IST directly
       status: appt.status,
       notes: appt.notes || "",
     }));
@@ -115,7 +113,7 @@ export async function POST(req: NextRequest) {
       `INSERT INTO appointment (doctor_id, patient_id, date, time, status, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
        RETURNING *`,
-      [doctor_id, patient_id, date, time, appointmentStatus]
+      [doctor_id, patient_id, date, time, appointmentStatus] // IST values
     );
 
     const appointment = res.rows[0];
@@ -194,4 +192,4 @@ export async function PUT(req: NextRequest) {
       { status: 500 }
     );
   }
-};
+}
